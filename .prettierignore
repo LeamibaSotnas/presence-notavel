@@ -1,0 +1,8 @@
+dist
+node_modules
+.git
+pnpm-lock.yaml
+patches
+*.min.js
+*.min.css
+client/src/index.css

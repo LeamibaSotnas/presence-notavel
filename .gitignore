@@ -1,0 +1,46 @@
+# Dependências
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Cache de ferramentas
+*.tsbuildinfo
+.cache/
+coverage/
+.eslintcache
+
+# Resíduos da plataforma de origem (Manus) — não devem voltar ao repositório.
+# .project-config.json continha segredos em texto puro.
+.project-config.json
+.manus/
+.manus-logs/
+client/public/__manus__/
+template.json

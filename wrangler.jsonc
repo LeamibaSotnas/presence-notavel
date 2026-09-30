@@ -1,0 +1,27 @@
+{
+  // Deploy 100% estático via Cloudflare Workers Assets.
+  // Não há Worker script: o Cloudflare serve os arquivos de ./dist direto do CDN.
+  //
+  //   pnpm run build && wrangler deploy
+  //
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "presence-atelier",
+  "compatibility_date": "2026-09-30",
+
+  "assets": {
+    "directory": "./dist",
+    // Qualquer rota desconhecida devolve index.html com status 200,
+    // deixando o router do cliente (wouter) resolver — inclusive o 404.
+    "not_found_handling": "single-page-application"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+
+  // ─── Quando surgir backend real ──────────────────────────────────────────
+  // Adicione um "main": "./worker/index.ts" e as bindings necessárias:
+  //   "d1_databases": [{ "binding": "DB", "database_name": "...", "database_id": "..." }]
+  //   "r2_buckets":   [{ "binding": "MEDIA", "bucket_name": "..." }]
+  // Segredos vão por `wrangler secret put NOME` — nunca versionados.
+}
