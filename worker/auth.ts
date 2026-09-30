@@ -11,45 +11,56 @@ import {
 
 const COOKIE = "pa_session";
 const SESSION_DAYS = 14;
-/** Recomendação OWASP para PBKDF2-SHA256. */
-const PBKDF2_ITERATIONS = 210_000;
 
 const encoder = new TextEncoder();
 
 // ─── Senhas ─────────────────────────────────────────────────────────────────
+//
+// O alongamento PBKDF2 (210.000 iterações) acontece no NAVEGADOR — ver
+// client/src/lib/password.ts, que explica por quê e o que isso preserva.
+// Aqui chega um valor de 256 bits já alongado, e o servidor só precisa de um
+// hash rápido e salgado por cima dele.
+//
+// Um SHA-256 basta porque a entrada já tem entropia de 256 bits: não existe
+// dicionário para atacar. O salt aleatório impede tabela pré-computada caso
+// dois acessos compartilhem a mesma senha alongada.
+//
+// Formato: "s1$<salt_b64>$<hash_b64>"
+//
+const SCHEME = "s1";
 
-async function derive(password: string, salt: Uint8Array, iterations: number) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
-    key,
-    256
-  );
-  return base64(new Uint8Array(bits));
+async function digest(stretched: string, salt: Uint8Array) {
+  const value = encoder.encode(stretched);
+  const buffer = new Uint8Array(salt.length + value.length);
+  buffer.set(salt, 0);
+  buffer.set(value, salt.length);
+  const hash = await crypto.subtle.digest("SHA-256", buffer as BufferSource);
+  return base64(new Uint8Array(hash));
 }
 
-export async function hashPassword(password: string) {
+export async function hashStretched(stretched: string) {
   const salt = new Uint8Array(16);
   crypto.getRandomValues(salt);
-  const hash = await derive(password, salt, PBKDF2_ITERATIONS);
-  return `pbkdf2$${PBKDF2_ITERATIONS}$${base64(salt)}$${hash}`;
+  return `${SCHEME}$${base64(salt)}$${await digest(stretched, salt)}`;
 }
 
-export async function verifyPassword(password: string, stored: string) {
-  const [scheme, iterations, salt, hash] = stored.split("$");
-  if (scheme !== "pbkdf2" || !iterations || !salt || !hash) return false;
-  const candidate = await derive(
-    password,
-    fromBase64(salt),
-    Number(iterations)
-  );
-  return timingSafeEqual(candidate, hash);
+export class LegacyHashError extends Error {
+  constructor() {
+    super("Acesso gravado em formato antigo.");
+    this.name = "LegacyHashError";
+  }
+}
+
+export async function verifyStretched(stretched: string, stored: string) {
+  // Acessos criados antes desta mudança usavam PBKDF2 no servidor, com um
+  // número de iterações que o Workers recusa. Não dá para verificá-los aqui —
+  // sinalizamos para o login responder com uma instrução clara em vez de 500.
+  if (stored.startsWith("pbkdf2$")) throw new LegacyHashError();
+
+  const [scheme, salt, hash] = stored.split("$");
+  if (scheme !== SCHEME || !salt || !hash) return false;
+
+  return timingSafeEqual(await digest(stretched, fromBase64(salt)), hash);
 }
 
 // ─── Sessões ────────────────────────────────────────────────────────────────

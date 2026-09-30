@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { auth, type AdminUser } from "@/lib/api";
+import { stretchPassword } from "@/lib/password";
 
 type AuthState = {
   user: AdminUser | null;
@@ -42,7 +43,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const result = await auth.login(email, password);
+    // ~200 ms de CPU do navegador. O botão fica em "Entrando" durante isso.
+    const stretched = await stretchPassword(email, password);
+    const result = await auth.login(email, stretched);
     setUser(result.user);
   }, []);
 

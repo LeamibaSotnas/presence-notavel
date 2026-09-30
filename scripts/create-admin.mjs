@@ -6,11 +6,13 @@
  *   node scripts/create-admin.mjs cliente@dominio.com "Nome" --local
  *
  * A senha é pedida no terminal e não aparece na tela nem no histórico do shell.
- * O hash usa PBKDF2-SHA256 com 210.000 iterações, no mesmo formato que o
- * Worker verifica em worker/auth.ts.
+ *
+ * ⚠️ As constantes abaixo precisam ser IDÊNTICAS às de
+ *    client/src/lib/password.ts, que faz o mesmo alongamento no navegador na
+ *    hora do login. Mudar uma sem a outra invalida todos os acessos.
  */
 
-import { pbkdf2Sync, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, webcrypto } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { writeFileSync, unlinkSync } from "node:fs";
@@ -18,12 +20,45 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 const ITERATIONS = 210_000;
+const SALT_PREFIX = "presence-atelier:v1:";
 const DB_NAME = "presence-atelier-db";
 
-function hashPassword(password) {
+function base64url(buffer) {
+  return Buffer.from(buffer)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/** Mesma derivação de client/src/lib/password.ts. */
+async function stretchPassword(email, password) {
+  const salt = createHash("sha256")
+    .update(SALT_PREFIX + email.trim().toLowerCase())
+    .digest();
+
+  const key = await webcrypto.subtle.importKey(
+    "raw",
+    Buffer.from(password, "utf8"),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await webcrypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: ITERATIONS, hash: "SHA-256" },
+    key,
+    256
+  );
+  return base64url(new Uint8Array(bits));
+}
+
+/** Mesmo formato de worker/auth.ts: "s1$<salt_b64>$<sha256_b64>". */
+function storeValue(stretched) {
   const salt = randomBytes(16);
-  const hash = pbkdf2Sync(password, salt, ITERATIONS, 32, "sha256");
-  return `pbkdf2$${ITERATIONS}$${salt.toString("base64")}$${hash.toString("base64")}`;
+  const hash = createHash("sha256")
+    .update(Buffer.concat([salt, Buffer.from(stretched, "utf8")]))
+    .digest();
+  return `s1$${salt.toString("base64")}$${hash.toString("base64")}`;
 }
 
 /** Lê a senha sem ecoar no terminal. */
@@ -35,7 +70,6 @@ function askPassword(prompt) {
     });
     const onData = char => {
       if (["\n", "\r", "\u0004"].includes(char.toString())) return;
-      // Reescreve a linha sem revelar os caracteres digitados.
       process.stdout.clearLine?.(0);
       process.stdout.cursorTo?.(0);
       process.stdout.write(prompt);
@@ -79,13 +113,13 @@ async function main() {
   }
 
   const id = randomUUID();
-  const passwordHash = hashPassword(password);
+  const stored = storeValue(await stretchPassword(email, password));
   const now = Date.now();
   const escaped = value => `'${String(value).replace(/'/g, "''")}'`;
 
   // UPSERT por e-mail: rodar de novo troca a senha em vez de dar erro.
   const sql = `INSERT INTO admin_users (id, email, name, password, created_at)
-VALUES (${escaped(id)}, ${escaped(email.toLowerCase())}, ${escaped(name)}, ${escaped(passwordHash)}, ${now})
+VALUES (${escaped(id)}, ${escaped(email.toLowerCase())}, ${escaped(name)}, ${escaped(stored)}, ${now})
 ON CONFLICT(email) DO UPDATE SET password = excluded.password, name = excluded.name;`;
 
   // Vai por arquivo, não por --command: o hash contém caracteres que o shell
@@ -103,11 +137,13 @@ ON CONFLICT(email) DO UPDATE SET password = excluded.password, name = excluded.n
     });
 
     if (result.status !== 0) {
+      console.error("\nFalha ao aplicar no banco. Possíveis causas:");
+      console.error("  • as migrations ainda não rodaram:");
       console.error(
-        "\nFalha ao aplicar no banco. Verifique se as migrations já rodaram:"
+        `      npx wrangler d1 migrations apply ${DB_NAME}${local ? " --local" : " --remote"}`
       );
       console.error(
-        `  npx wrangler d1 migrations apply ${DB_NAME}${local ? " --local" : " --remote"}`
+        "  • o token do wrangler perdeu escopos — rode 'npx wrangler login'"
       );
       process.exit(1);
     }

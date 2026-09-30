@@ -97,10 +97,11 @@ export const auth = {
       }
     ),
 
-  login: (email: string, password: string) =>
+  /** `stretched` vem de stretchPassword() — a senha crua nunca sai do navegador. */
+  login: (email: string, stretched: string) =>
     request<{ authenticated: true; user: AdminUser }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, stretched }),
     }),
 
   logout: () =>

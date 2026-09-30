@@ -13,9 +13,10 @@ import {
   createSession,
   destroySession,
   getSession,
+  LegacyHashError,
   purgeExpired,
   requireAuth,
-  verifyPassword,
+  verifyStretched,
 } from "./auth";
 import { getContent, putContent } from "./content";
 import {
@@ -63,8 +64,10 @@ async function login(env: Env, request: Request) {
   }
 
   const email = asString(body.email, 200)?.toLowerCase();
-  const password = typeof body.password === "string" ? body.password : null;
-  if (!email || !password) return fail(422, "Informe e-mail e senha.");
+  // O navegador envia a senha já alongada (client/src/lib/password.ts).
+  // A senha em si nunca chega aqui.
+  const stretched = asString(body.stretched, 512);
+  if (!email || !stretched) return fail(422, "Informe e-mail e senha.");
 
   const user = await env.DB.prepare(
     "SELECT id, email, name, password FROM admin_users WHERE email = ?"
@@ -76,7 +79,19 @@ async function login(env: Env, request: Request) {
   // quais e-mails existem.
   const invalid = fail(401, "E-mail ou senha incorretos.");
   if (!user) return invalid;
-  if (!(await verifyPassword(password, user.password))) return invalid;
+
+  try {
+    if (!(await verifyStretched(stretched, user.password))) return invalid;
+  } catch (error) {
+    if (error instanceof LegacyHashError) {
+      return fail(
+        409,
+        "Este acesso foi criado em um formato que não é mais suportado. " +
+          'Recrie com: pnpm admin:create <email> "<Nome>"'
+      );
+    }
+    throw error;
+  }
 
   const session = await createSession(env, user.id, request);
   await env.DB.prepare("UPDATE admin_users SET last_login = ? WHERE id = ?")

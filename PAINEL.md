@@ -150,8 +150,15 @@ preset, adicione a entrada no arquivo; nada mais precisa mudar.
 
 ## 7. Segurança
 
-- Senha com **PBKDF2-SHA256, 210.000 iterações** (recomendação OWASP), salt por
-  usuário.
+- Senha com **PBKDF2-SHA256, 210.000 iterações**, salt derivado do e-mail. O
+  alongamento roda **no navegador** (`client/src/lib/password.ts`): o Workers
+  recusa PBKDF2 acima de 100.000 iterações, e o plano gratuito dá 10 ms de CPU
+  por requisição — 100.000 iterações custam ~114 ms. Fazendo no cliente, o
+  fator de trabalho contra vazamento do banco é o mesmo e cabe no gratuito.
+  A senha crua nunca chega ao servidor; o que trafega é o valor alongado,
+  protegido pelo TLS como a senha estaria.
+- No banco fica um **SHA-256 salgado** do valor alongado. Um hash rápido basta
+  porque a entrada já tem 256 bits de entropia — não há dicionário a atacar.
 - Sessão em **cookie httpOnly, Secure, SameSite=Lax** — nenhum token em
   `localStorage`, onde qualquer script da página poderia lê-lo.
 - No banco fica só o **SHA-256 do token**: um vazamento não permite reconstruir
