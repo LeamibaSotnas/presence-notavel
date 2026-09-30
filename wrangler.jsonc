@@ -3,6 +3,11 @@
   //
   //   pnpm run build && wrangler deploy
   //
+  // ⚠️ Se o wrangler se oferecer para "adicionar o binding por você" depois de
+  //    criar um recurso, recuse. Ele ACRESCENTA uma entrada nova em vez de
+  //    corrigir a existente, e o Worker passa a enxergar dois bindings com
+  //    nomes diferentes para o mesmo recurso.
+  //
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "presence-atelier",
   "main": "./worker/index.ts",
@@ -20,21 +25,20 @@
     "run_worker_first": ["/api/*", "/media/*"]
   },
 
+  // O binding precisa se chamar DB: é o nome que worker/types.ts declara.
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "presence-atelier-db",
-      // ⚠️ Preencher com o id devolvido por:
-      //    wrangler d1 create presence-atelier-db
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "1d921cf7-4bef-4246-8434-922b7176f98e",
       "migrations_dir": "./migrations"
     }
   ],
 
+  // Idem: o binding precisa se chamar MEDIA.
   "r2_buckets": [
     {
       "binding": "MEDIA",
-      // ⚠️ Criar com:  wrangler r2 bucket create presence-atelier-media
       "bucket_name": "presence-atelier-media"
     }
   ],
@@ -58,4 +62,9 @@
   //   wrangler secret put LEAD_WEBHOOK_URL
   // Aceita qualquer endpoint que receba POST com JSON — um webhook do
   // Telegram, um Zap, ou uma Worker sua que dispare e-mail.
+  //
+  // Nenhum recurso está marcado com "remote": true de propósito. Assim
+  // `wrangler dev` usa banco e bucket LOCAIS, e um teste no painel não
+  // escreve em cima dos dados do cliente. Para apontar de propósito para
+  // produção, use a flag --remote no comando.
 }
