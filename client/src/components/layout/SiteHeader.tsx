@@ -1,5 +1,5 @@
 import { MessageCircle, Menu, X } from "lucide-react";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 import { BrandMark } from "./BrandMark";
 
 type SiteHeaderProps = {
@@ -15,12 +15,13 @@ export function SiteHeader({
   onCloseMenu,
   onContact,
 }: SiteHeaderProps) {
+  const site = useSite();
   return (
     <header className={`actor-header ${menuOpen ? "menu-on" : ""}`}>
       <BrandMark onClick={onCloseMenu} />
 
       <nav aria-label="Navegação principal">
-        {siteConfig.nav.map(item => (
+        {site.nav.map(item => (
           <a key={item.href} href={item.href}>
             {item.label}
           </a>

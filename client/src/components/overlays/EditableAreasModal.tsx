@@ -1,5 +1,5 @@
 import { Check, Sparkles } from "lucide-react";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 import { Overlay } from "./Overlay";
 
 type EditableAreasModalProps = {
@@ -8,7 +8,8 @@ type EditableAreasModalProps = {
 };
 
 export function EditableAreasModal({ open, onClose }: EditableAreasModalProps) {
-  const { adminConcept } = siteConfig;
+  const site = useSite();
+  const { adminConcept } = site;
 
   return (
     <Overlay open={open} onClose={onClose} label="Estrutura editável">

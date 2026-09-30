@@ -1,4 +1,4 @@
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 type BrandMarkProps = {
   onClick?: () => void;
@@ -6,7 +6,8 @@ type BrandMarkProps = {
 
 /** Logotipo textual reutilizado no header, no menu mobile e no footer. */
 export function BrandMark({ onClick }: BrandMarkProps) {
-  const { initials, firstName, lastName, name } = siteConfig.identity;
+  const site = useSite();
+  const { initials, firstName, lastName, name } = site.identity;
 
   return (
     <a

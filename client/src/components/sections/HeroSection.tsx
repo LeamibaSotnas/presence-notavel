@@ -1,12 +1,13 @@
 import { ArrowDown, ArrowUpRight } from "lucide-react";
-import { images, siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 type HeroSectionProps = {
   onContact: () => void;
 };
 
 export function HeroSection({ onContact }: HeroSectionProps) {
-  const { hero, identity } = siteConfig;
+  const site = useSite();
+  const { hero, identity } = site;
   const [stampTop, stampBottom] = hero.stampLabel.split("\n");
 
   return (
@@ -14,7 +15,7 @@ export function HeroSection({ onContact }: HeroSectionProps) {
       {/* A imagem vem do config para permitir troca sem mexer no CSS. */}
       <div
         className="hero-image"
-        style={{ backgroundImage: `url("${images.hero}")` }}
+        style={{ backgroundImage: `url("${hero.image}")` }}
       />
       <div className="hero-gradient" />
       <div className="hero-grain" />
@@ -52,7 +53,7 @@ export function HeroSection({ onContact }: HeroSectionProps) {
           <span>Role para descobrir</span>
           <span className="hero-rule" />
           <span className="hero-scroll-num">
-            01 / {String(siteConfig.nav.length).padStart(2, "0")}
+            01 / {String(site.nav.length).padStart(2, "0")}
           </span>
         </div>
       </div>

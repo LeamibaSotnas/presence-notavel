@@ -3,8 +3,14 @@
 Landing page de portfólio para atores e talentos de presença comercial.
 Template white-label: todo o conteúdo vive em **um único arquivo de configuração**.
 
+Tem painel administrativo em `/admin`: o cliente edita textos, envia fotos e
+vídeos, escolhe a tipografia e lê os contatos que chegam pelo formulário.
+
 **Stack:** React 19 · TypeScript · Vite 7 · Tailwind CSS 4 · wouter · shadcn/ui
-**Deploy:** Cloudflare Workers Assets (estático, sem servidor)
+**Backend:** Cloudflare Worker + D1 (conteúdo e contatos) + R2 (mídia)
+**Deploy:** Cloudflare — uma infraestrutura só
+
+> Para colocar o painel no ar e entender como ele funciona: **[PAINEL.md](PAINEL.md)**.
 
 ---
 
@@ -30,9 +36,14 @@ pnpm dev                 # http://localhost:3000
 
 ## Como personalizar
 
-### 1. Conteúdo — `client/src/config/site.config.ts`
+### 1. Conteúdo — pelo painel ou pelo arquivo
 
-É o **único** arquivo a editar para trocar a identidade do site. Nenhum
+Com o painel no ar, o conteúdo vive no D1 e o cliente edita em `/admin`.
+
+`client/src/config/site.config.ts` continua sendo a **base e a rede de
+segurança**: é o que o site mostra antes da primeira edição, e é para onde ele
+cai se a API estiver fora do ar. Vale editá-lo para definir o ponto de partida
+de uma nova instância do template. Nenhum
 componente de seção tem texto fixo. O arquivo abre com um checklist de
 personalização; siga-o de cima para baixo.
 
@@ -86,7 +97,8 @@ client/
   index.html                   meta tags, fontes, JSON-LD
   public/                      favicon, robots, sitemap, _headers, images/
   src/
-    config/site.config.ts      ★ TODO O CONTEÚDO EDITÁVEL
+    config/site.config.ts      ★ conteúdo padrão (base e fallback)
+    config/themes.ts           presets de tipografia
     index.css                  design system (shadcn tokens + CSS próprio)
     App.tsx                    router (wouter) + providers
     main.tsx                   bootstrap
@@ -101,6 +113,10 @@ client/
                                Lightbox, EditableAreasModal
       ui/                      shadcn/ui — 53 componentes disponíveis
       ErrorBoundary.tsx
+    pages/admin/               painel administrativo (carregado sob demanda)
+    contexts/SiteContext.tsx   carrega o conteúdo da API e mescla sobre o padrão
+    lib/api.ts                 cliente da API
+    lib/media-compress.ts      compressão de imagem no navegador
     hooks/
       useContactActions.ts     WhatsApp / Instagram / e-mail + aviso de config
       useScrollLock.ts         trava scroll com overlay aberto
@@ -108,8 +124,11 @@ client/
       usePersistFn.ts
     contexts/ThemeContext.tsx  tema (dark fixo por padrão)
     lib/utils.ts               cn()
+worker/                        API: auth, conteúdo, mídia, contatos
+migrations/                    schema do D1
 scripts/fetch-remote-images.mjs
-wrangler.jsonc                 configuração do deploy
+scripts/create-admin.mjs
+wrangler.jsonc                 configuração do deploy e dos bindings
 ```
 
 ### Como adicionar uma seção
@@ -147,13 +166,9 @@ revalidado) e os headers de segurança.
 
 Domínio próprio: adicione um Custom Domain ao Worker no painel da Cloudflare.
 
-### Quando surgir backend
-
-Este projeto **não tem** backend. Para o painel administrativo que hoje é só
-maquete (seção "Pensado para evoluir"), o caminho é acrescentar
-`"main": "./worker/index.ts"` ao `wrangler.jsonc` com bindings de D1 e R2 — ou
-apontar para uma instância Supabase. Segredos via `wrangler secret put`, nunca
-versionados.
+Antes do primeiro deploy é preciso criar o banco e o bucket e preencher o
+`database_id` em `wrangler.jsonc` — o passo a passo está em
+[PAINEL.md](PAINEL.md).
 
 ---
 
@@ -163,7 +178,8 @@ versionados.
   de propósito, como kit. Eles custam ~80 kB no CSS final (21 kB gzip) porque o
   Tailwind varre os arquivos. Se em algum momento você fixar quais usa, apagar
   o resto derruba o CSS para ~43 kB.
-- **Sem testes.** `vitest` está instalado e não há nenhum arquivo de teste.
+- **Sem testes automatizados.** `vitest` está instalado e não há nenhum arquivo
+  de teste. A API e o painel foram validados manualmente ponta a ponta.
 - **Origem:** o projeto nasceu na plataforma Manus. Todo o acoplamento foi
   removido — runtime, coletor de debug, proxy de storage, OAuth e o servidor
   Express que só servia estáticos. O histórico anterior a este repositório não

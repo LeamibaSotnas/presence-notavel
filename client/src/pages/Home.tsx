@@ -13,6 +13,7 @@ import { GallerySection } from "@/components/sections/GallerySection";
 import { NotesSection } from "@/components/sections/NotesSection";
 import { AdminConceptSection } from "@/components/sections/AdminConceptSection";
 import { ContactSection } from "@/components/sections/ContactSection";
+import { InterestSection } from "@/components/sections/InterestSection";
 import { ProjectDetailModal } from "@/components/overlays/ProjectDetailModal";
 import { Lightbox } from "@/components/overlays/Lightbox";
 import { EditableAreasModal } from "@/components/overlays/EditableAreasModal";
@@ -54,6 +55,7 @@ export default function Home() {
           onSelect={(image, label) => setLightbox({ image, label })}
         />
         <NotesSection />
+        <InterestSection />
         <AdminConceptSection onOpen={() => setEditableOpen(true)} />
         <ContactSection {...contact} />
       </main>

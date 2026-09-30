@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
-import { siteConfig, type PortfolioItem } from "@/config/site.config";
+import { type PortfolioItem } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 import { Overlay } from "./Overlay";
 
 type ProjectDetailModalProps = {
@@ -13,6 +14,7 @@ export function ProjectDetailModal({
   onClose,
   onContact,
 }: ProjectDetailModalProps) {
+  const site = useSite();
   return (
     <Overlay open={item !== null} onClose={onClose} label="Detalhe do projeto">
       {item && (
@@ -30,7 +32,7 @@ export function ProjectDetailModal({
             </span>
             <h2>{item.title}</h2>
             <p>{item.description}</p>
-            {siteConfig.isDemo && (
+            {site.isDemo && (
               <span className="detail-note">
                 Conteúdo demonstrativo — substituível por projeto real, marca,
                 data, galeria e link.

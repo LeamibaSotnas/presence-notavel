@@ -68,8 +68,16 @@ export type NoteItem = {
 
 export type NavItem = { label: string; href: string };
 
+export type InterestField = {
+  /** Opção da lista "assunto" no formulário de interesse. */
+  value: string;
+  label: string;
+};
+
 export type SiteConfig = {
   isDemo: boolean;
+  /** Tipografia: id de um preset de config/themes.ts. */
+  theme: { typography: string };
   identity: {
     name: string;
     initials: string;
@@ -101,6 +109,8 @@ export type SiteConfig = {
   };
   nav: NavItem[];
   hero: {
+    /** Imagem de fundo do topo. Trocável pelo painel. */
+    image: string;
     eyebrow: string;
     /** Renderizado em duas linhas; `titleAccent` recebe a cor de destaque. */
     titleLead: string;
@@ -156,6 +166,19 @@ export type SiteConfig = {
     modalBody: string;
     editableAreas: string[];
   };
+  interest: {
+    kicker: string;
+    titleLead: string;
+    titleAccent: string;
+    intro: string;
+    subjects: InterestField[];
+    /** Texto do aviso de privacidade exibido junto ao checkbox (LGPD). */
+    privacyNotice: string;
+    successTitle: string;
+    successBody: string;
+    /** Abre o WhatsApp com a mensagem preenchida depois de enviar. */
+    redirectToWhatsApp: boolean;
+  };
   contactSection: {
     kicker: string;
     titleLead: string;
@@ -175,32 +198,23 @@ export type SiteConfig = {
 
 // ─── Imagens ────────────────────────────────────────────────────────────────
 //
-// ⚠️ Hoje estas URLs apontam para CDNs externas (Manus e Unsplash). A CDN da
-//    Manus deixará de servir estes arquivos quando o projeto sair de lá.
-//
-//    Rode `node scripts/fetch-remote-images.mjs` para baixar todas as imagens
-//    para client/public/images/ e reescrever este bloco com caminhos locais.
+// As imagens vivem em client/public/images/ e são servidas pelo próprio
+// domínio. Imagens enviadas pelo painel ficam no R2 e chegam como /media/...
 //
 const IMG = {
-  hero: "https://files.manuscdn.com/search-media/310419663029911592/gtgC1O0qZ7deHWvrwF8M4b/4t9aTtvZcvQRBqMEu76nEQ.jpg",
-  portfolio1:
-    "https://files.manuscdn.com/search-media/310419663029911592/gtgC1O0qZ7deHWvrwF8M4b/HnGGLma5hE3hqoE2EgwXLk.jpg",
-  portfolio2:
-    "https://files.manuscdn.com/search-media/310419663029911592/gtgC1O0qZ7deHWvrwF8M4b/dxtS35xaozkHjEuEeV8PTY.jpg",
-  portfolio3:
-    "https://files.manuscdn.com/search-media/310419663029911592/gtgC1O0qZ7deHWvrwF8M4b/zQbHWnHckgA2gMsYgCc7ME.jpg",
-  portfolio4:
-    "https://files.manuscdn.com/search-media/310419663029911592/gtgC1O0qZ7deHWvrwF8M4b/yqV6Cji7LxsEoRa8n8S9M9.jpg",
-  gallery4:
-    "https://files.manuscdn.com/search-media/310419663029911592/gtgC1O0qZ7deHWvrwF8M4b/SQ9c1POgKZmM.jpg",
-  gallery5:
-    "https://files.manuscdn.com/search-media/310419663029911592/gtgC1O0qZ7deHWvrwF8M4b/u6WEE4FYu7Wx8xhdrcZvyT.jpg",
-  event1:
-    "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=85",
-  event2:
-    "https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1200&q=85",
-  event3:
-    "https://images.unsplash.com/photo-1488841714725-bb4c32d1ac94?auto=format&fit=crop&w=1200&q=85",
+  hero: "/images/hero.jpg",
+  portfolio1: "/images/portfolio1.jpg",
+  portfolio2: "/images/portfolio2.jpg",
+  portfolio3: "/images/portfolio3.jpg",
+  portfolio4: "/images/portfolio4.jpg",
+  // ⚠️ O original desta entrada já não existia na CDN da Manus quando o
+  //    download rodou. Apontada para uma imagem local para não deixar a
+  //    galeria quebrada — troque por uma foto real pelo painel.
+  gallery4: "/images/portfolio2.jpg",
+  gallery5: "/images/gallery5.jpg",
+  event1: "/images/event1.jpg",
+  event2: "/images/event2.jpg",
+  event3: "/images/event3.jpg",
 } as const;
 
 /** Exportado para o script de download e para o CSS do hero. */
@@ -210,6 +224,12 @@ export const images = IMG;
 
 export const siteConfig: SiteConfig = {
   isDemo: true,
+
+  theme: {
+    // Um dos ids de config/themes.ts: editorial, moderno, elegante,
+    // teatral, minimal, quente.
+    typography: "editorial",
+  },
 
   identity: {
     name: "Mateo Valença",
@@ -252,6 +272,7 @@ export const siteConfig: SiteConfig = {
   ],
 
   hero: {
+    image: IMG.hero,
     eyebrow: "Ator & presença comercial",
     titleLead: "Imagem que",
     titleAccent: "fica.",
@@ -411,6 +432,27 @@ export const siteConfig: SiteConfig = {
       "Notícias e novidades",
       "Canais de contato",
     ],
+  },
+
+  interest: {
+    kicker: "Fale comigo",
+    titleLead: "Conte o que",
+    titleAccent: "você precisa.",
+    intro:
+      "Descreva o projeto, a data e o formato. Respondo pelo WhatsApp ou pelo e-mail que você deixar.",
+    subjects: [
+      { value: "evento", label: "Evento ou recepção" },
+      { value: "campanha", label: "Campanha publicitária" },
+      { value: "audiovisual", label: "Projeto audiovisual" },
+      { value: "parceria", label: "Parceria ou colaboração" },
+      { value: "outro", label: "Outro assunto" },
+    ],
+    privacyNotice:
+      "Autorizo o contato por WhatsApp ou e-mail e o armazenamento dos dados informados para esta finalidade. Os dados não são compartilhados com terceiros e podem ser excluídos a pedido.",
+    successTitle: "Mensagem recebida.",
+    successBody:
+      "Obrigado pelo contato. Vou responder pelo canal que você informou.",
+    redirectToWhatsApp: true,
   },
 
   contactSection: {

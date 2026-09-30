@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
-import { siteConfig, type PortfolioItem } from "@/config/site.config";
+import { type PortfolioItem } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 const ALL = "Todos";
 
@@ -9,7 +10,8 @@ type PortfolioSectionProps = {
 };
 
 export function PortfolioSection({ onSelect }: PortfolioSectionProps) {
-  const { portfolio } = siteConfig;
+  const site = useSite();
+  const { portfolio } = site;
   const [filter, setFilter] = useState(ALL);
 
   const categories = useMemo(

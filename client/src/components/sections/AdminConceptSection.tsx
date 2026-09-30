@@ -1,12 +1,13 @@
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 type AdminConceptSectionProps = {
   onOpen: () => void;
 };
 
 export function AdminConceptSection({ onOpen }: AdminConceptSectionProps) {
-  const { adminConcept } = siteConfig;
+  const site = useSite();
+  const { adminConcept } = site;
 
   return (
     <section className="admin-concept">

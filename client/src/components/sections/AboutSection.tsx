@@ -1,8 +1,9 @@
 import { ArrowUpRight, MapPin } from "lucide-react";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 export function AboutSection() {
-  const { about, identity } = siteConfig;
+  const site = useSite();
+  const { about, identity } = site;
 
   return (
     <section className="statement-section" id="sobre">

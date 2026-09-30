@@ -1,11 +1,12 @@
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 type GallerySectionProps = {
   onSelect: (image: string, label: string) => void;
 };
 
 export function GallerySection({ onSelect }: GallerySectionProps) {
-  const { gallery } = siteConfig;
+  const site = useSite();
+  const { gallery } = site;
 
   return (
     <section className="gallery-section" id="galeria">

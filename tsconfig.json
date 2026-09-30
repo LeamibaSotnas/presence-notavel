@@ -1,5 +1,5 @@
 {
-  "include": ["client/src/**/*", "scripts/**/*"],
+  "include": ["client/src/**/*", "worker/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
@@ -19,7 +19,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "baseUrl": ".",
-    "types": ["node", "vite/client"],
+    "types": ["node", "vite/client", "@cloudflare/workers-types"],
     "paths": {
       "@/*": ["./client/src/*"]
     }

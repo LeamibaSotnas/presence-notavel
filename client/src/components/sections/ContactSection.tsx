@@ -5,7 +5,7 @@ import {
   Mail,
   MessageCircle,
 } from "lucide-react";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 import { useContactActions } from "@/hooks/useContactActions";
 
 type ContactSectionProps = ReturnType<typeof useContactActions>;
@@ -18,7 +18,8 @@ export function ContactSection({
   hasInstagram,
   hasEmail,
 }: ContactSectionProps) {
-  const { contactSection } = siteConfig;
+  const site = useSite();
+  const { contactSection } = site;
   const [panelLead, panelTail] = contactSection.panelTitle.split("\n");
 
   return (

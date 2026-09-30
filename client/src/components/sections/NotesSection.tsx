@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
-import { siteConfig, type NoteItem } from "@/config/site.config";
+import { type NoteItem } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 /**
  * Card de nota. Vira link de verdade quando o item traz `href`;
@@ -29,7 +30,8 @@ function NoteCard({ note, index }: { note: NoteItem; index: number }) {
 }
 
 export function NotesSection() {
-  const { notes } = siteConfig;
+  const site = useSite();
+  const { notes } = site;
 
   // Seção inteira desaparece quando não há publicações.
   if (notes.items.length === 0) return null;

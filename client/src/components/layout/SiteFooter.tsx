@@ -1,8 +1,9 @@
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 import { BrandMark } from "./BrandMark";
 
 export function SiteFooter() {
-  const { footer, isDemo } = siteConfig;
+  const site = useSite();
+  const { footer, isDemo } = site;
 
   return (
     <footer className="actor-footer">

@@ -1,16 +1,17 @@
 import { useCallback, useState } from "react";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 /**
  * Centraliza os canais de contato.
  *
- * Quando `siteConfig.contact.whatsapp` está vazio, `openWhatsApp` não abre nada
+ * Quando `site.contact.whatsapp` está vazio, `openWhatsApp` não abre nada
  * e liga `showConfigNotice` — o aviso na seção de contato avisa que o canal
  * ainda não foi configurado, em vez de falhar em silêncio.
  */
 export function useContactActions() {
+  const site = useSite();
   const [showConfigNotice, setShowConfigNotice] = useState(false);
-  const { whatsapp, whatsappMessage, instagram, email } = siteConfig.contact;
+  const { whatsapp, whatsappMessage, instagram, email } = site.contact;
 
   const openWhatsApp = useCallback(() => {
     if (!whatsapp) {

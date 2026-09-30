@@ -1,12 +1,13 @@
 import { ArrowUpRight, CalendarDays } from "lucide-react";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 type EventsSectionProps = {
   onContact: () => void;
 };
 
 export function EventsSection({ onContact }: EventsSectionProps) {
-  const { events } = siteConfig;
+  const site = useSite();
+  const { events } = site;
 
   return (
     <section className="event-section" id="eventos">

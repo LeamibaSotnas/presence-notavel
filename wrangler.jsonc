@@ -1,27 +1,61 @@
 {
-  // Deploy 100% estático via Cloudflare Workers Assets.
-  // Não há Worker script: o Cloudflare serve os arquivos de ./dist direto do CDN.
+  // Worker com API (/api/*), mídia do R2 (/media/*) e o site estático.
   //
   //   pnpm run build && wrangler deploy
   //
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "presence-atelier",
+  "main": "./worker/index.ts",
   "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
 
   "assets": {
     "directory": "./dist",
-    // Qualquer rota desconhecida devolve index.html com status 200,
-    // deixando o router do cliente (wouter) resolver — inclusive o 404.
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    // Rota desconhecida devolve index.html, deixando o router do cliente
+    // resolver — inclusive /admin e o 404.
+    "not_found_handling": "single-page-application",
+    // O Worker roda primeiro e decide: /api e /media vão para o código,
+    // o resto cai nos assets.
+    "run_worker_first": ["/api/*", "/media/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "presence-atelier-db",
+      // ⚠️ Preencher com o id devolvido por:
+      //    wrangler d1 create presence-atelier-db
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "./migrations"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      // ⚠️ Criar com:  wrangler r2 bucket create presence-atelier-media
+      "bucket_name": "presence-atelier-media"
+    }
+  ],
+
+  "triggers": {
+    // Limpeza diária de sessões vencidas, 4h UTC (1h em Brasília).
+    "crons": ["0 4 * * *"]
+  },
+
+  "vars": {
+    // Trocar pelo domínio final. Usado só em links de notificação.
+    "SITE_URL": "https://example.com"
   },
 
   "observability": {
     "enabled": true
   }
 
-  // ─── Quando surgir backend real ──────────────────────────────────────────
-  // Adicione um "main": "./worker/index.ts" e as bindings necessárias:
-  //   "d1_databases": [{ "binding": "DB", "database_name": "...", "database_id": "..." }]
-  //   "r2_buckets":   [{ "binding": "MEDIA", "bucket_name": "..." }]
-  // Segredos vão por `wrangler secret put NOME` — nunca versionados.
+  // ─── Segredos (nunca versionados) ────────────────────────────────────────
+  // Notificação de novo lead, opcional:
+  //   wrangler secret put LEAD_WEBHOOK_URL
+  // Aceita qualquer endpoint que receba POST com JSON — um webhook do
+  // Telegram, um Zap, ou uma Worker sua que dispare e-mail.
 }

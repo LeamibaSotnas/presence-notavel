@@ -1,8 +1,9 @@
 import { ArrowUpRight } from "lucide-react";
 import { Link } from "wouter";
-import { siteConfig } from "@/config/site.config";
+import { useSite } from "@/contexts/SiteContext";
 
 export default function NotFound() {
+  const site = useSite();
   return (
     <div className="notfound-page">
       <div className="container notfound-inner">
@@ -19,7 +20,7 @@ export default function NotFound() {
         <Link className="peach-button" href="/">
           Voltar ao início <ArrowUpRight size={16} />
         </Link>
-        <span className="notfound-brand">{siteConfig.identity.name}</span>
+        <span className="notfound-brand">{site.identity.name}</span>
       </div>
     </div>
   );
