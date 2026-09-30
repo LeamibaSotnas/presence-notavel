@@ -61,26 +61,91 @@ function storeValue(stretched) {
   return `s1$${salt.toString("base64")}$${hash.toString("base64")}`;
 }
 
-/** Lê a senha sem ecoar no terminal. */
+/**
+ * Lê a senha mostrando um asterisco por caractere.
+ *
+ * Lê o stdin em modo bruto, caractere a caractere, em vez de deixar o readline
+ * ecoar e apagar a linha depois: aquela abordagem depende de clearLine/cursorTo
+ * e se comporta de forma imprevisível no PowerShell, onde chega a engolir ou
+ * duplicar caracteres — e aí as duas digitações "não coincidem" sem motivo.
+ *
+ * Os asteriscos também servem de conferência visual: dá para contar o que foi
+ * digitado, coisa que uma linha em branco não permite.
+ */
+/**
+ * Linhas do stdin quando não há TTY (pipe, CI).
+ *
+ * Lidas todas de uma vez, na primeira pergunta. Perguntar duas vezes a um
+ * readline ligado a um pipe não funciona: o stream termina logo após a
+ * primeira leitura e a segunda pergunta fica pendurada para sempre.
+ */
+let pipedLines = null;
+
+async function readAllLines() {
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  return Buffer.concat(chunks).toString("utf8").split(/\r?\n/);
+}
+
 function askPassword(prompt) {
-  return new Promise(resolve => {
-    const rl = createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    const onData = char => {
-      if (["\n", "\r", "\u0004"].includes(char.toString())) return;
-      process.stdout.clearLine?.(0);
-      process.stdout.cursorTo?.(0);
-      process.stdout.write(prompt);
-    };
-    process.stdin.on("data", onData);
-    rl.question(prompt, answer => {
-      process.stdin.off("data", onData);
-      rl.close();
+  return new Promise((resolve, reject) => {
+    const input = process.stdin;
+
+    if (!input.isTTY) {
+      const take = () => {
+        process.stdout.write(`${prompt}\n`);
+        resolve(pipedLines.shift() ?? "");
+      };
+      if (pipedLines) return take();
+      readAllLines().then(lines => {
+        pipedLines = lines;
+        take();
+      }, reject);
+      return;
+    }
+
+    process.stdout.write(prompt);
+    input.setRawMode(true);
+    input.resume();
+    input.setEncoding("utf8");
+
+    let value = "";
+
+    const finish = (error, result) => {
+      input.setRawMode(false);
+      input.pause();
+      input.removeListener("data", onData);
       process.stdout.write("\n");
-      resolve(answer);
-    });
+      if (error) reject(error);
+      else resolve(result);
+    };
+
+    const onData = chunk => {
+      for (const char of chunk) {
+        switch (char) {
+          case "\r":
+          case "\n":
+            return finish(null, value);
+          case "\u0003": // Ctrl+C
+            return finish(new Error("Cancelado."));
+          case "\u0008": // Backspace
+          case "\u007f": // Delete
+            if (value.length > 0) {
+              value = value.slice(0, -1);
+              process.stdout.write("\b \b");
+            }
+            break;
+          default:
+            // Ignora teclas de controle (setas viram sequências de escape).
+            if (char >= " ") {
+              value += char;
+              process.stdout.write("*");
+            }
+        }
+      }
+    };
+
+    input.on("data", onData);
   });
 }
 
@@ -108,7 +173,9 @@ async function main() {
   }
   const confirm = await askPassword("Repita a senha: ");
   if (password !== confirm) {
-    console.error("\nAs senhas não coincidem.");
+    console.error(
+      `As senhas não coincidem (${password.length} e ${confirm.length} caracteres). Rode o comando de novo.`
+    );
     process.exit(1);
   }
 
