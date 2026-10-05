@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { AdminLayout, AdminPageHeader } from "./AdminLayout";
 import { MediaThumb, UPLOAD_LIMITS, useMediaLibrary } from "./MediaPicker";
-import { formatBytes } from "@/lib/media-compress";
+import { formatBytes, RECOMMENDED_WIDTH } from "@/lib/media-compress";
 
 type Filter = "all" | "image" | "video";
 
@@ -69,9 +69,20 @@ export default function AdminMedia() {
       />
 
       <p className="admin-note">
+        Enviar um arquivo para cá <b>não o coloca no site</b>. Esta é a
+        biblioteca: depois de enviar, vá em <b>Conteúdo</b> e escolha a imagem
+        no campo onde ela deve aparecer — fundo do topo, card de portfólio,
+        galeria. Só então clique em <b>Publicar alterações</b>.
+      </p>
+
+      <p className="admin-note">
         Imagens são otimizadas no navegador antes de subir (convertidas para
         WebP, no máximo 2400px). Limites: {formatBytes(UPLOAD_LIMITS.image)} por
-        imagem e {formatBytes(UPLOAD_LIMITS.video)} por vídeo.
+        imagem e {formatBytes(UPLOAD_LIMITS.video)} por vídeo.{" "}
+        <b>
+          A otimização só reduz, nunca amplia: para um fundo de página, envie um
+          arquivo de pelo menos {RECOMMENDED_WIDTH.background}px de largura.
+        </b>
       </p>
 
       {library.progress && (

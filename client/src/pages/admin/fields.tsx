@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChevronDown, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { MediaPicker, MediaThumb } from "./MediaPicker";
+import { resolutionWarning, type MediaSlot } from "@/lib/media-compress";
 import type { MediaItem } from "@/lib/api";
 
 // ─── Campos simples ─────────────────────────────────────────────────────────
@@ -94,16 +95,31 @@ export function MediaField({
   value,
   onChange,
   kind = "image",
+  slot,
   hint,
 }: {
   label: string;
   value: string;
   onChange: (url: string) => void;
   kind?: "image" | "video";
+  /** Uso pretendido, para conferir a resolução contra o mínimo daquele uso. */
+  slot?: MediaSlot;
   hint?: string;
 }) {
   const [picking, setPicking] = useState(false);
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const isRemote = value.startsWith("http");
+
+  // Mede a imagem que está realmente em uso, seja ela da biblioteca, do
+  // config embutido ou um endereço externo. A medição vem do próprio
+  // elemento já renderizado — não custa requisição extra nem depende de o
+  // arquivo ter metadados no banco.
+  const warning =
+    slot && natural ? resolutionWarning(natural.w, slot) : null;
+
+  useEffect(() => {
+    setNatural(null);
+  }, [value]);
 
   return (
     <div className="admin-field">
@@ -115,7 +131,16 @@ export function MediaField({
             kind === "video" ? (
               <video src={value} muted playsInline preload="metadata" />
             ) : (
-              <img src={value} alt="" />
+              <img
+                src={value}
+                alt=""
+                onLoad={event =>
+                  setNatural({
+                    w: event.currentTarget.naturalWidth,
+                    h: event.currentTarget.naturalHeight,
+                  })
+                }
+              />
             )
           ) : (
             <span className="admin-media-empty">
@@ -141,6 +166,12 @@ export function MediaField({
               <X size={14} /> Remover
             </button>
           )}
+          {natural && (
+            <small className={warning ? "admin-warn" : "admin-dim"}>
+              {natural.w}×{natural.h}
+            </small>
+          )}
+          {warning && <small className="admin-warn">{warning}</small>}
           {isRemote && (
             <small className="admin-warn">
               Arquivo externo — envie uma cópia para a biblioteca antes de
@@ -154,6 +185,7 @@ export function MediaField({
       <MediaPicker
         open={picking}
         kind={kind}
+        slot={slot}
         onSelect={(item: MediaItem) => onChange(item.url)}
         onClose={() => setPicking(false)}
       />

@@ -12,7 +12,7 @@ import { ApiError, content as contentApi } from "@/lib/api";
  * identidade de objeto.
  */
 export function useContentDraft() {
-  const { config, ready, refresh } = useSiteMeta();
+  const { config, ready, fromApi, updatedAt, refresh } = useSiteMeta();
   const [draft, setDraft] = useState<SiteConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +91,17 @@ export function useContentDraft() {
     dirty,
     saving,
     error,
+    /** Momento do salvamento feito nesta sessão, se houve. */
     savedAt,
+    /**
+     * Momento da última publicação segundo o servidor — inclusive de sessões
+     * anteriores. É o que responde "o que está no ar agora é o meu último
+     * trabalho?", pergunta que o estado do botão não responde: ele só sabe o
+     * que aconteceu nesta aba, desde que ela abriu.
+     */
+    publishedAt: savedAt ?? updatedAt,
+    /** false = o site está servindo o conteúdo de fábrica, não o do banco. */
+    fromApi,
   };
 }
 

@@ -1,4 +1,11 @@
-import { Check, Loader2, RotateCcw, Save } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  CloudOff,
+  Loader2,
+  RotateCcw,
+  Save,
+} from "lucide-react";
 import type { NoteItem } from "@/config/site.config";
 import { AdminLayout, AdminPageHeader } from "./AdminLayout";
 import {
@@ -11,6 +18,17 @@ import {
 } from "./fields";
 import { useContentDraft, useUnsavedGuard } from "./useContentDraft";
 
+/** Data e hora por extenso, no fuso de quem está olhando. */
+function formatPublished(timestamp: number) {
+  return new Date(timestamp).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function AdminContent() {
   const {
     draft,
@@ -22,6 +40,8 @@ export default function AdminContent() {
     saving,
     error,
     savedAt,
+    publishedAt,
+    fromApi,
   } = useContentDraft();
   useUnsavedGuard(dirty);
 
@@ -74,8 +94,36 @@ export default function AdminContent() {
       />
 
       {error && <p className="admin-error">{error}</p>}
+
+      {/*
+        Estado da publicação, sempre visível.
+
+        O rótulo do botão só conta o que aconteceu nesta aba desde que ela
+        abriu: recarregue a página e "Salvo" some, sem que nada tenha mudado
+        no ar. Quem precisa entregar um site para um cliente precisa de uma
+        afirmação que sobreviva a isso — data e hora do que está publicado,
+        vindas do servidor.
+      */}
+      {!fromApi ? (
+        <p className="admin-warn-block">
+          <CloudOff size={15} aria-hidden /> Este site ainda está exibindo o
+          conteúdo de fábrica. Nada que você vê aqui foi publicado — clique em{" "}
+          <b>Publicar alterações</b> para que o site passe a usar este conteúdo.
+        </p>
+      ) : publishedAt ? (
+        <p className={dirty ? "admin-published stale" : "admin-published"}>
+          <Check size={14} aria-hidden /> No ar desde{" "}
+          <b>{formatPublished(publishedAt)}</b>
+          {savedAt === publishedAt && " — publicado por você agora"}
+        </p>
+      ) : null}
+
       {dirty && (
-        <p className="admin-dirty-bar">Você tem alterações não publicadas.</p>
+        <p className="admin-dirty-bar">
+          <AlertTriangle size={14} aria-hidden /> Você tem alterações não
+          publicadas. O site continua mostrando a versão anterior até você
+          clicar em <b>Publicar alterações</b>.
+        </p>
       )}
 
       {/* ── Identidade ── */}
@@ -183,8 +231,10 @@ export default function AdminContent() {
       <Fieldset title="Topo da página" description="Imagem de fundo e chamada">
         <MediaField
           label="Imagem de fundo"
+          slot="background"
           value={draft.hero.image}
           onChange={value => patchField("hero", "image", value)}
+          hint="Ocupa a tela inteira. Use a maior imagem que você tiver."
         />
         <TextField
           label="Rótulo acima do título"
@@ -302,6 +352,7 @@ export default function AdminContent() {
             <>
               <MediaField
                 label="Imagem"
+                slot="card"
                 value={item.image}
                 onChange={value => update({ image: value })}
               />
@@ -390,6 +441,7 @@ export default function AdminContent() {
             <>
               <MediaField
                 label="Imagem"
+                slot="card"
                 value={item.image}
                 onChange={value => update({ image: value })}
               />
@@ -463,6 +515,7 @@ export default function AdminContent() {
             <>
               <MediaField
                 label="Imagem"
+                slot="gallery"
                 value={item.image}
                 onChange={value => update({ image: value })}
               />

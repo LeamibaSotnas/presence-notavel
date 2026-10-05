@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, Loader2, Upload, Video, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Image as ImageIcon,
+  Loader2,
+  Upload,
+  Video,
+  X,
+} from "lucide-react";
 import { ApiError, media as mediaApi, type MediaItem } from "@/lib/api";
 import {
   compressImage,
   formatBytes,
+  resolutionWarning,
   videoDimensions,
+  type MediaSlot,
 } from "@/lib/media-compress";
 
 export const UPLOAD_LIMITS = {
@@ -164,11 +173,43 @@ export function MediaThumb({ item }: { item: MediaItem }) {
   );
 }
 
+/**
+ * Dimensões do arquivo, com aviso quando não servem para o uso pretendido.
+ *
+ * Fica junto da miniatura de propósito: o momento de descobrir que a imagem é
+ * pequena demais é o da escolha, não o de olhar o site publicado e achar que o
+ * sistema degradou o arquivo.
+ */
+export function MediaDimensions({
+  item,
+  slot,
+}: {
+  item: MediaItem;
+  slot?: MediaSlot;
+}) {
+  if (!item.width || !item.height) return null;
+  const warning = slot ? resolutionWarning(item.width, slot) : null;
+
+  return (
+    <span className={warning ? "media-card-dim warn" : "media-card-dim"}>
+      {item.width}×{item.height}
+      {warning && (
+        <>
+          {" "}
+          <AlertTriangle size={11} aria-hidden /> pequena para este uso
+        </>
+      )}
+    </span>
+  );
+}
+
 // ─── Seletor em modal ───────────────────────────────────────────────────────
 
 type MediaPickerProps = {
   open: boolean;
   kind?: "image" | "video";
+  /** Uso pretendido, para conferir a resolução contra o mínimo daquele uso. */
+  slot?: MediaSlot;
   onSelect: (item: MediaItem) => void;
   onClose: () => void;
 };
@@ -176,11 +217,17 @@ type MediaPickerProps = {
 export function MediaPicker({
   open,
   kind,
+  slot,
   onSelect,
   onClose,
 }: MediaPickerProps) {
   const library = useMediaLibrary(kind);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) setWarning(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -240,10 +287,18 @@ export function MediaPicker({
               if (!event.target.files?.length) return;
               const uploaded = await library.upload(event.target.files);
               event.target.value = "";
-              if (uploaded[0]) {
-                onSelect(uploaded[0]);
-                onClose();
-              }
+              const first = uploaded[0];
+              if (!first) return;
+
+              // A imagem é escolhida de qualquer forma — a decisão é do
+              // cliente, não nossa. Mas se ela não serve para este uso, o
+              // modal fica aberto com o motivo na tela, em vez de fechar e
+              // deixar a descoberta para depois de publicado.
+              const problem =
+                slot && first.width ? resolutionWarning(first.width, slot) : null;
+              onSelect(first);
+              if (problem) setWarning(problem);
+              else onClose();
             }}
           />
           {library.progress && (
@@ -252,6 +307,11 @@ export function MediaPicker({
         </div>
 
         {library.error && <p className="admin-error">{library.error}</p>}
+        {warning && (
+          <p className="admin-warn-block">
+            <AlertTriangle size={15} aria-hidden /> {warning}
+          </p>
+        )}
 
         {library.loading ? (
           <p className="admin-hint">Carregando…</p>
@@ -274,6 +334,7 @@ export function MediaPicker({
               >
                 <MediaThumb item={item} />
                 <span className="media-card-name">{item.filename}</span>
+                <MediaDimensions item={item} slot={slot} />
               </button>
             ))}
           </div>
