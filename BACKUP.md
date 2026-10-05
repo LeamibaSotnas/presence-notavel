@@ -1,7 +1,7 @@
 # Backup e recuperação
 
 Procedimento de cópia e restauração do Presence Atelier em produção.
-Última revisão: 05/10/2026.
+Última revisão: 05/10/2026 (segunda revisão do dia: autenticação e contagem de tabelas).
 
 > **Onde guardar:** `C:\Users\Abimael\actor-presence-prototype-source\backups\`
 > — **fora do repositório git**, de propósito.
@@ -28,6 +28,19 @@ Procedimento de cópia e restauração do Presence Atelier em produção.
 
 **Ambiente:** produção · **Risco: somente leitura.** O `export` apenas lê.
 
+> **Autentique antes (R-27).** Os endpoints de import/export do D1 exigem
+> escopos que o token salvo do wrangler perde com frequência. O sintoma é
+> `Authentication error [code: 10000]` — que **não** quer dizer banco errado nem
+> rede ruim. Resolve-se com:
+>
+> ```powershell
+> npx wrangler login
+> ```
+>
+> Isso aconteceu duas vezes em 05/10/2026, nas duas vezes resolvido assim.
+> Se o `export` falhar com 10000, rode o `login` antes de investigar qualquer
+> outra coisa.
+
 ```powershell
 cd C:\Users\Abimael\actor-presence-prototype-source\actor-presence-prototype
 
@@ -43,9 +56,18 @@ Get-Item "..\backups\d1_$data.sql" | Select-Object Name, Length, LastWriteTime
 Select-String -Path "..\backups\d1_$data.sql" -Pattern "CREATE TABLE" | Measure-Object | Select-Object Count
 ```
 
-Esperado: **6 tabelas** (`admin_users`, `sessions`, `content`, `media`, `leads`,
-`rate_limits`) e tamanho acima de alguns kilobytes. Um arquivo de 0 bytes ou sem
-`CREATE TABLE` é backup falso — refaça antes de confiar nele.
+Esperado: **7 `CREATE TABLE`** — as seis do sistema (`admin_users`, `sessions`,
+`content`, `media`, `leads`, `rate_limits`) **mais `d1_migrations`**, que o
+próprio wrangler cria para controlar as migrations. Contar 6 e achar que falta
+uma é erro de leitura, não backup incompleto.
+
+Um arquivo de 0 bytes ou sem `CREATE TABLE` é backup falso — refaça antes de
+confiar nele.
+
+**Medição de referência (05/10/2026, primeiro backup real):** 11.023 bytes,
+75 linhas, 7 `CREATE TABLE`, 9 `INSERT INTO`. Serve de ordem de grandeza: um
+dump futuro muito menor que isso, com o cliente tendo publicado conteúdo, é
+motivo para desconfiar antes de guardar.
 
 ### Variações úteis
 
@@ -167,6 +189,7 @@ Isso prova que o dump reconstrói o sistema — sem tocar em produção.
 
 | Item | Estado |
 |---|---|
+| Primeiro backup do D1 | **Feito e verificado em 05/10/2026** (`d1_2026-10-05_1516.sql`) |
 | Backup automático agendado | Não existe. Hoje é manual |
 | Backup do R2 | Não existe. Sem comando nativo |
 | Teste de restauração executado | **Nunca feito** — ver seção 6 |
