@@ -44,3 +44,8 @@ coverage/
 .manus-logs/
 client/public/__manus__/
 template.json
+
+# Dumps do D1: contem hash de senha e dados pessoais de contatos.
+# A pasta fica fora do repositorio, mas a regra impede acidente se alguem a mover para ca.
+backups/
+*.sql.bak
